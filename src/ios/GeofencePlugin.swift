@@ -35,30 +35,30 @@ func log(errors: [[String:String]]) {
 func checkRequirements() -> (Bool, [String], [[String:String]]) {
     var errors = [[String:String]]()
     var warnings = [String]()
-    
+
     if (!CLLocationManager.isMonitoringAvailableForClass(CLRegion)) {
         errors.append([
             "code": GeofencePlugin.ERROR_GEOFENCE_NOT_AVAILABLE,
             "message": "Geofencing not available"
         ])
     }
-    
+
     if (!CLLocationManager.locationServicesEnabled()) {
         errors.append([
             "code": GeofencePlugin.ERROR_LOCATION_SERVICES_DISABLED,
             "message": "Locationservices disabled"
         ])
     }
-    
+
     let authStatus = CLLocationManager.authorizationStatus()
-    
+
     if (authStatus != CLAuthorizationStatus.AuthorizedAlways) {
         errors.append([
             "code": GeofencePlugin.ERROR_PERMISSION_DENIED,
             "message": "Location always permissions not granted"
         ])
     }
-    
+
     if (iOS8) {
         if let notificationSettings = UIApplication.sharedApplication().currentUserNotificationSettings() {
             if notificationSettings.types == .None {
@@ -70,11 +70,11 @@ func checkRequirements() -> (Bool, [String], [[String:String]]) {
                 if !notificationSettings.types.contains(.Sound) {
                     warnings.append("Warning: notification settings - sound permission missing")
                 }
-                
+
                 if !notificationSettings.types.contains(.Alert) {
                     warnings.append("Warning: notification settings - alert permission missing")
                 }
-                
+
                 if !notificationSettings.types.contains(.Badge) {
                     warnings.append("Warning: notification settings - badge permission missing")
                 }
@@ -86,9 +86,9 @@ func checkRequirements() -> (Bool, [String], [[String:String]]) {
             ])
         }
     }
-    
+
     let ok = (errors.count == 0)
-    
+
     return (ok, warnings, errors)
 }
 
@@ -99,7 +99,7 @@ func checkRequirements() -> (Bool, [String], [[String:String]]) {
     static let ERROR_LOCATION_SERVICES_DISABLED = "LOCATION_SERVICES_DISABLED"
     static let ERROR_PERMISSION_DENIED = "PERMISSION_DENIED"
     static let ERROR_UNKNOWN = "UNKNOWN"
-    
+
     lazy var geoNotificationManager = GeoNotificationManager()
     let priority = DISPATCH_QUEUE_PRIORITY_DEFAULT
 
@@ -172,7 +172,7 @@ func checkRequirements() -> (Bool, [String], [[String:String]]) {
             let geo = command.arguments[0]
             self.geoNotificationManager.addOrUpdateGeoNotification(JSON(geo), completion: {
                 (errors: [[String:String]]?) -> Void in
-                
+
                 dispatch_async(dispatch_get_main_queue()) {
                     var pluginResult = CDVPluginResult(status: CDVCommandStatus_OK)
                     if (errors != nil) {
@@ -289,7 +289,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
 
         log(warnings)
         log(errors)
-        
+
         if (!ok) {
             return completion(errors)
         }
@@ -386,7 +386,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                         "message": error.description
                     ])
                 }
-                
+
                 command.callback(errors)
                 self.addOrUpdateCallbacks.removeValueForKey(clRegion)
             }
@@ -407,6 +407,20 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
         }
     }
 
+    func isFrequencyOk(var geo: JSON) -> Bool{
+      let store = GeoNotificationStore()
+      if(geo["notification"]["lastTriggered"] != nil){
+        if(Int(NSDate().timeIntervalSince1970) < geo["notification"]["lastTriggered"].int! + geo["notification"]["frequency"].int!){
+          log("GeoFence triggered before frequency limit elapsed.")
+          return false
+        }
+      }
+      geo["notification"]["lastTriggered"] = JSON(NSDate().timeIntervalSince1970)
+      log("New Geo Obj: \(geo["notification"])")
+      store.update(geo)
+      return true
+    }
+
     func isWithinTimeRange(geoNotification: JSON) -> Bool {
         let now = NSDate()
         var greaterThanOrEqualToStartTime: Bool = true
@@ -422,20 +436,6 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
             }
         }
         return greaterThanOrEqualToStartTime && lessThanEndTime
-    }
-
-    func isFrequencyOk(var geo: JSON) -> Bool{
-      let store = GeoNotificationStore()
-      if(geo["notification"]["lastTriggered"] != nil){
-        if(Int(NSDate().timeIntervalSince1970) < geo["notification"]["lastTriggered"].int! + geo["notification"]["frequency"].int!){
-          log("GeoFence triggered before frequency limit elapsed.")
-          return false
-        }
-      }
-      geo["notification"]["lastTriggered"] = JSON(NSDate().timeIntervalSince1970)
-      log("New Geo Obj: \(geo["notification"])")
-      store.update(geo)
-      return true
     }
 
     func parseDate(dateStr: String?) -> NSDate? {
