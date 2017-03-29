@@ -438,6 +438,20 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
         return greaterThanOrEqualToStartTime && lessThanEndTime
     }
 
+    func isFrequencyOk(var geo: JSON) -> Bool{
+      let store = GeoNotificationStore()
+      if(geo["notification"]["lastTriggered"] != nil){
+        if(Int(NSDate().timeIntervalSince1970) < geo["notification"]["lastTriggered"].int! + geo["notification"]["frequency"].int!){
+          log("GeoFence triggered before frequency limit elapsed.")
+          return false
+        }
+      }
+      geo["notification"]["lastTriggered"] = JSON(NSDate().timeIntervalSince1970)
+      log("New Geo Obj: \(geo["notification"])")
+      store.update(geo)
+      return true
+    }
+
     func parseDate(dateStr: String?) -> NSDate? {
         let dateFormatter = NSDateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
