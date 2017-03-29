@@ -1,5 +1,8 @@
 package com.cowbell.cordova.geofence;
 
+import android.util.Log;
+import android.text.format.Time;
+
 import com.google.android.gms.location.Geofence;
 import com.google.gson.annotations.Expose;
 
@@ -21,6 +24,12 @@ public class GeoNotification {
     @Expose public Notification notification;
 
     public GeoNotification() {
+    }
+
+    public boolean isFrequencyOk(){
+      Time time = new Time();
+      time.setToNow();
+      return (this.notification.lastTriggered + this.notification.frequency * 1000 < time.toMillis(false));
     }
 
     public Geofence toGeofence() {
