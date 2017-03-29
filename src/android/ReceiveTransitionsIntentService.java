@@ -69,8 +69,10 @@ public class ReceiveTransitionsIntentService extends IntentService {
                     GeoNotification geoNotification = store
                             .getGeoNotification(fenceId);
 
-                    if (geoNotification != null && geoNotification.isWithinTimeRange()) {
+                    if (geoNotification != null && geoNotification.isWithinTimeRange() && geoNotification.isFrequencyOk()) {
                         if (geoNotification.notification != null) {
+                            geoNotification.notification.setLastTriggered();
+                            store.setGeoNotification(geoNotification);
                             notifier.notify(geoNotification.notification);
                         }
                         geoNotification.transitionType = transitionType;

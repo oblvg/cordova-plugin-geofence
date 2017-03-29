@@ -334,7 +334,8 @@ window.geofence.addOrUpdate({
         id:             1,
         title:          "Welcome in Gliwice",
         text:           "You just arrived to Gliwice city center.",
-        openAppOnClick: true
+        openAppOnClick: true,
+        frequency:      Number(3600)
     }
 }).then(function () {
     console.log('Geofence successfully added');
